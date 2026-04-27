@@ -1,0 +1,1309 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>一蓑烟雨 - 苏东坡治愈之旅</title>
+    <style>
+        /* ================= 基础重置 ================= */
+        :root {
+            --paper-bg: #f4ecd8;
+            --ink-color: #3b312b;
+            --green-color: #5d7a60;
+            --disabled-color: #9ea09b;
+            --panel-bg: rgba(244, 236, 216, 0.88);
+            --shadow-light: 0 4px 12px rgba(59, 49, 43, 0.15);
+            --gold-accent: #c8a96e;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+        body { font-family: "STZhongsong", "SimSun", serif; background-color: #111; overflow: hidden; color: var(--ink-color); }
+
+        /* ================= 核心容器 ================= */
+        #game-container {
+            position: relative; width: 100vw; height: 100vh;
+            background-image: url('bg-default.png');
+            background-color: var(--paper-bg);
+            background-size: cover; background-position: center;
+            transition: background-color 1.2s ease;
+        }
+
+        #fade-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: #111; z-index: 50;
+            display: flex; justify-content: center; align-items: center;
+            visibility: hidden; opacity: 0; transition: opacity 1s ease;
+        }
+        #fade-text {
+            color: #d3c7b3; font-size: 20px; letter-spacing: 5px; opacity: 0; transition: opacity 0.5s ease;
+        }
+
+        /* ================= 顶部状态栏 ================= */
+        #top-bar {
+            position: absolute; top: 0; left: 0; width: 100%;
+            padding: 20px 30px; display: flex; justify-content: space-between; z-index: 20;
+        }
+        .glass-box {
+            background: var(--panel-bg); padding: 10px 20px; border-radius: 8px;
+            border: 1px solid rgba(59, 49, 43, 0.2); font-size: 20px; font-weight: bold;
+            box-shadow: var(--shadow-light); cursor: pointer; transition: all 0.3s;
+        }
+        .glass-box:hover { background: var(--paper-bg); }
+
+        /* ================= 侧边栏布局 ================= */
+        .side-wrapper {
+            position: absolute; top: 0; height: 100%;
+            display: flex; flex-direction: column; justify-content: center; z-index: 20;
+        }
+        #left-wrapper { left: 30px; gap: 20px; }
+        .friend-btn {
+            width: 60px; height: 60px; border-radius: 50%; border: 2px solid var(--ink-color);
+            background-color: var(--paper-bg); background-size: cover; background-position: center;
+            cursor: pointer; box-shadow: var(--shadow-light);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px; font-weight: bold; color: var(--ink-color); text-shadow: 0 0 4px white;
+        }
+        .friend-btn.disabled { filter: grayscale(100%); opacity: 0.6; cursor: not-allowed; }
+
+        #right-wrapper { right: 30px; gap: 25px; }
+        .nav-btn {
+            padding: 12px 25px; background: var(--panel-bg); color: var(--ink-color);
+            border: 1px solid rgba(59, 49, 43, 0.3); border-radius: 8px;
+            font-size: 22px; font-weight: bold; cursor: pointer; box-shadow: var(--shadow-light); transition: all 0.2s;
+        }
+        .nav-btn:hover { background: var(--paper-bg); transform: translateX(-5px); }
+
+        /* ================= 主角色 ================= */
+        #character-area {
+            position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); z-index: 5;
+        }
+        #character-img {
+            height: 85vh;
+            width: 100vw; max-width: 900px;
+            background-image: url('苏轼黄州-赤壁形象.png'); background-size: contain;
+            background-repeat: no-repeat; background-position: bottom center;
+            display: flex; align-items: flex-end; justify-content: center;
+            padding-bottom: 20px; color: rgba(59, 49, 43, 0.5); font-size: 13px;
+        }
+
+        /* ================= 普通弹窗系统 ================= */
+        .modal-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.6); z-index: 100;
+            display: flex; justify-content: center; align-items: center;
+            visibility: hidden; opacity: 0; transition: opacity 0.3s ease, visibility 0.3s;
+        }
+        .modal-overlay.active { visibility: visible; opacity: 1; }
+
+        .modal-box {
+            background: var(--paper-bg); width: 90%; max-width: 500px; padding: 30px;
+            border-radius: 8px; border: 2px solid var(--ink-color); text-align: center;
+        }
+        .modal-title { font-size: 26px; font-weight: bold; margin-bottom: 20px; border-bottom: 1px solid rgba(59,49,43,0.2); padding-bottom: 10px; }
+        .modal-content { font-size: 20px; line-height: 1.9; margin-bottom: 25px; text-align: left; }
+
+        .choice-btn {
+            display: block; width: 100%; padding: 12px; margin-top: 10px;
+            background: rgba(255,255,255,0.5); border: 1px solid rgba(59,49,43,0.3);
+            border-radius: 6px; cursor: pointer; font-size: 20px; text-align: left; transition: background 0.2s;
+        }
+        .choice-btn:hover { background: rgba(0,0,0,0.05); }
+        .choice-btn.locked { color: var(--disabled-color); text-align: center; cursor: not-allowed; }
+
+        .action-bar { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; }
+        .btn-secondary { padding: 10px 15px; background: transparent; border: 1px solid var(--ink-color); border-radius: 4px; cursor: pointer; font-family: inherit; font-size: 19px; }
+        .btn-primary { padding: 10px 15px; background: var(--ink-color); color: var(--paper-bg); border: none; border-radius: 4px; cursor: pointer; font-family: inherit; font-size: 19px; }
+
+        /* ==========================================
+           视觉小说对话 UI —— 泛舟赤壁场景
+        ========================================== */
+        #vn-scene {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 200;
+            visibility: hidden; opacity: 0;
+            transition: opacity 0.5s ease, visibility 0.5s;
+            background: #0d1825; /* 夜间江面底色 */
+            overflow: hidden;
+        }
+        #vn-scene.active { visibility: visible; opacity: 1; }
+
+        /* 背景 —— 赤壁夜江 */
+        #vn-bg {
+            position: absolute; inset: 0;
+            background-image: url('bg-huangzhou.png');
+            background-size: cover; background-position: center;
+            filter: brightness(0.75) saturate(0.9);
+        }
+        /* 月光晕染叠加 */
+        #vn-bg::after {
+            content: '';
+            position: absolute; inset: 0;
+            background: radial-gradient(ellipse 55% 65% at 78% 15%, rgba(220,210,170,0.22) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        /* ── 人物立绘区（<img> 保留 PNG 透明背景） ── */
+        /* 你：左侧 */
+        #vn-char-su {
+            position: absolute;
+            bottom: 0;           /* 从屏幕最底部起，与对话框底部对齐，让身体进入文字框 */
+            left: 0%;
+            height: 82vh;        /* 放大：原66vh→82vh */
+            width: auto;
+            max-width: 34vw;     /* 原28vw→34vw */
+            object-fit: contain;
+            object-position: bottom left;
+            z-index: 225;        /* 高于对话框220，立绘叠在文字框上层 */
+            transform-origin: bottom left;
+            transition: filter 0.4s ease, transform 0.4s ease;
+            pointer-events: none;
+        }
+        /* 客人：右侧 */
+        #vn-char-ke {
+            position: absolute;
+            bottom: 0;
+            right: 0%;
+            height: 76vh;        /* 放大：原62vh→76vh */
+            width: auto;
+            max-width: 32vw;     /* 原26vw→32vw */
+            object-fit: contain;
+            object-position: bottom right;
+            z-index: 225;        /* 高于对话框220 */
+            transform-origin: bottom right;
+            transition: filter 0.4s ease, transform 0.4s ease;
+            pointer-events: none;
+        }
+        /* 非发言者：淡出隐藏，向外侧位移 */
+        .vn-char-dim { opacity: 0 !important; pointer-events: none; }
+        /* 发言者高亮 */
+        .vn-char-active { filter: brightness(1.08) drop-shadow(0 0 22px rgba(220,200,130,0.45)) !important; transform: scale(1.04) !important; }
+        /* 两者都加 transition 以保证动效自然（在元素CSS里已有transition，这里补opacity） */
+        #vn-char-su, #vn-char-ke { transition: opacity 0.45s ease, filter 0.4s ease, transform 0.4s ease; }
+
+        /* ── 选项按钮区（居中，对话框之上） ── */
+        #vn-choices {
+            position: absolute;
+            left: 50%; transform: translateX(-50%);
+            bottom: calc(33% + 6px);  /* 紧贴对话框上沿 */
+            width: 60%; max-width: 600px;
+            display: flex; flex-direction: column; gap: 10px;
+            z-index: 230;
+            visibility: hidden; opacity: 0;
+            transition: opacity 0.3s ease, visibility 0.3s;
+        }
+        #vn-choices.visible { visibility: visible; opacity: 1; }
+        .vn-choice-btn {
+            padding: 14px 22px;
+            background: rgba(244, 236, 216, 0.93);
+            border: 1.5px solid rgba(59, 49, 43, 0.45);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 22px;
+            font-family: "STZhongsong", "SimSun", serif;
+            color: var(--ink-color);
+            text-align: left;
+            line-height: 1.6;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.35);
+            transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+        }
+        .vn-choice-btn:hover {
+            background: rgba(255, 248, 230, 0.98);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+        }
+        /* 选项序号徽章 */
+        .vn-choice-btn::before {
+            content: attr(data-index);
+            display: inline-block;
+            width: 22px; height: 22px;
+            border-radius: 50%;
+            background: var(--ink-color);
+            color: var(--paper-bg);
+            font-size: 12px; line-height: 22px;
+            text-align: center;
+            margin-right: 10px;
+            vertical-align: middle;
+            flex-shrink: 0;
+        }
+
+        /* ── 对话文字框 ── */
+        #vn-dialog-box {
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            height: 33%;
+            background: linear-gradient(to top, rgba(15,12,8,0.94) 60%, rgba(15,12,8,0.0) 100%);
+            z-index: 220;
+            padding: 18px 8% 22px 8%;
+            transition: padding 0.35s ease;
+            display: flex; flex-direction: column; justify-content: flex-end;
+        }
+        #vn-speaker {
+            font-size: 28px; font-weight: bold; letter-spacing: 2px;
+            color: var(--gold-accent);
+            margin-bottom: 8px;
+            text-shadow: 0 1px 6px rgba(0,0,0,0.8);
+            min-height: 28px;
+        }
+        #vn-text {
+            font-size: 25px; line-height: 1.95;
+            color: #f0e8d5;
+            text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+            min-height: 62px;
+        }
+        /* 点击继续提示 */
+        #vn-next-hint {
+            position: absolute; right: 8%; bottom: 18px;
+            font-size: 20px; color: rgba(200,185,140,0.75);
+            letter-spacing: 1px;
+            animation: blink 1.4s infinite;
+        }
+        @keyframes blink { 0%,100%{opacity:0.4} 50%{opacity:1} }
+
+        /* 结算面板（显示在对话框内） */
+        #vn-result {
+            display: none;
+            background: rgba(244,236,216,0.15);
+            border: 1px solid rgba(200,185,140,0.35);
+            border-radius: 6px;
+            padding: 10px 16px;
+            margin-top: 8px;
+            font-size: 22px; color: #b8ddb0;
+            letter-spacing: 0.5px;
+        }
+
+        /* 关闭按钮 */
+        #vn-close-btn {
+            position: absolute; top: 22px; right: 28px;
+            z-index: 240;
+            padding: 8px 20px;
+            background: rgba(244,236,216,0.18);
+            border: 1px solid rgba(200,185,140,0.4);
+            border-radius: 20px;
+            color: rgba(240,232,213,0.85);
+            font-size: 18px; font-family: inherit;
+            cursor: pointer; letter-spacing: 1px;
+            transition: background 0.2s;
+        }
+        #vn-close-btn:hover { background: rgba(244,236,216,0.3); }
+
+        /* ── 顶部情境标题 ── */
+        #vn-scene-title {
+            position: absolute; top: 22px; left: 50%; transform: translateX(-50%);
+            z-index: 240;
+            font-size: 24px; letter-spacing: 5px; font-weight: bold;
+            color: rgba(240,232,213,0.9);
+            text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+            pointer-events: none;
+        }
+
+        /* ── 占位提示（图片未加载时） ── */
+        .char-placeholder-text {
+            position: absolute; bottom: 30%; font-size: 13px;
+            color: rgba(200,185,140,0.5); pointer-events: none;
+        }
+        #vn-char-su .char-placeholder-text { right: 4%; }
+        #vn-char-ke .char-placeholder-text { left: 4%; }
+
+
+        /* ================= 开场黑屏序幕 ================= */
+        #intro-screen {
+            position: fixed; inset: 0; z-index: 9000;
+            background: #06050a;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            overflow: hidden;
+            cursor: pointer;
+        }
+        #intro-screen.hidden { display: none; }
+
+        /* 打字文字区 */
+        #intro-text-area {
+            width: 72%; max-width: 640px;
+            text-align: center;
+            position: relative; z-index: 2;
+            padding: 0 10px;
+        }
+        .intro-line {
+            font-size: 24px;
+            letter-spacing: 3px;
+            color: #c8c0b0;
+            line-height: 2;
+            opacity: 0;
+            transform: translateY(10px);
+            /* will-change 让浏览器提前合成层，消除卡顿 */
+            will-change: opacity, transform;
+            transition: opacity 0.55s cubic-bezier(0.22,0.61,0.36,1),
+                        transform 0.55s cubic-bezier(0.22,0.61,0.36,1);
+            font-family: "STZhongsong", "SimSun", serif;
+        }
+        .intro-line.show { opacity: 1; transform: translateY(0); }
+        .intro-line.dim  { opacity: 0; transform: translateY(-6px);
+                           transition: opacity 0.3s ease, transform 0.3s ease; }
+        .intro-line.red  { color: #c04a3a; font-weight: bold; letter-spacing: 2px; }
+        .intro-line.big  { font-size: 30px; color: #e8dcc8; letter-spacing: 5px; }
+        .intro-line.hint { font-size: 14px; color: rgba(200,192,176,0.5); letter-spacing: 2px;
+                           margin-top: 30px; animation: blink2 2s infinite; }
+        @keyframes blink2 { 0%,100%{opacity:0.2} 60%{opacity:0.7} }
+
+        /* 光标闪烁 */
+        .cursor {
+            display: inline-block; width: 2px; height: 1.1em;
+            background: #c8c0b0; vertical-align: middle;
+            animation: blink-cur 0.8s step-end infinite; margin-left: 2px;
+        }
+        @keyframes blink-cur { 50%{ opacity: 0; } }
+
+        /* 黑洞吸入动画层 */
+        #blackhole-layer {
+            position: fixed; inset: 0; z-index: 9100;
+            background: #000;
+            display: flex; justify-content: center; align-items: center;
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.4s ease;
+        }
+        #blackhole-layer.active { opacity: 1; pointer-events: all; }
+        #blackhole-canvas {
+            position: absolute; inset: 0; width: 100%; height: 100%;
+        }
+        #blackhole-text {
+            position: relative; z-index: 2;
+            color: rgba(220,210,190,0);
+            font-size: 26px; letter-spacing: 6px;
+            font-family: "STZhongsong", "SimSun", serif;
+            text-shadow: 0 0 30px rgba(180,160,120,0);
+            transition: color 1.5s ease 0.8s, text-shadow 1.5s ease 0.8s;
+        }
+        #blackhole-layer.active #blackhole-text {
+            color: rgba(220,210,190,0.9);
+            text-shadow: 0 0 30px rgba(180,160,120,0.7);
+        }
+
+        /* 穿越后：醒来宋代画面 */
+        #awaken-layer {
+            position: fixed; inset: 0; z-index: 9200;
+            background-image: url('bg-default.png');
+            background-size: cover; background-position: center;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            padding: 20px;
+            overflow: hidden;
+            opacity: 0; pointer-events: none;
+            transition: opacity 1s ease;
+        }
+        /* 睁眼遮罩：两片眼帘从上下合拢→分开 */
+        #eye-open-overlay {
+            position: fixed; inset: 0; z-index: 9300;
+            pointer-events: none;
+            display: none;
+        }
+        #eye-top, #eye-bottom {
+            position: absolute; left: 0; right: 0;
+            height: 50%; background: #000;
+            transition: transform 1.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        #eye-top    { top: 0;    transform: translateY(0); }
+        #eye-bottom { bottom: 0; transform: translateY(0); }
+        /* 睁开状态 */
+        #eye-open-overlay.open #eye-top    { transform: translateY(-100%); }
+        #eye-open-overlay.open #eye-bottom { transform: translateY(100%); }
+        /* 暗色遮罩让信纸更易读 */
+        #awaken-overlay {
+            position: absolute; inset: 0;
+            background: rgba(10, 6, 2, 0.52);
+        }
+        #awaken-layer.active { opacity: 1; pointer-events: all; }
+        #letter-paper {
+            position: relative; z-index: 2;
+            width: 420px; max-width: 88vw;
+            max-height: 60vh;
+            overflow-y: auto;
+            background: linear-gradient(160deg, #f5ead0 80%, #ede0bb 100%);
+            border: 1px solid #c9aa72;
+            border-radius: 4px;
+            padding: 36px 40px 30px;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.7), inset 0 0 60px rgba(180,150,90,0.08);
+            opacity: 0;
+            transform: translateY(30px) scale(0.96);
+            transition: opacity 1.2s ease 0.4s, transform 1.2s ease 0.4s;
+        }
+        #awaken-layer.active #letter-paper { opacity: 1; transform: translateY(0) scale(1); }
+        #letter-paper h3 {
+            font-size: 22px; letter-spacing: 4px; color: #5a3e28;
+            text-align: center; margin-bottom: 20px; border-bottom: 1px solid #c9aa72;
+            padding-bottom: 10px;
+        }
+        #letter-paper p {
+            font-size: 20px; line-height: 2.2; color: #3b2a1a;
+            letter-spacing: 1.5px; text-align: justify;
+        }
+        #letter-paper .letter-sig {
+            text-align: right; margin-top: 16px; font-size: 19px;
+            color: #6a4a28; letter-spacing: 2px;
+        }
+        /* 穿越后反应按钮区 */
+        #awaken-reactions {
+            position: relative; z-index: 2;
+            margin-top: 24px;
+            display: flex; gap: 16px; justify-content: center;
+            opacity: 0; transform: translateY(12px);
+            transition: opacity 1s ease 2s, transform 1s ease 2s;
+        }
+        #awaken-layer.active #awaken-reactions { opacity: 1; transform: translateY(0); }
+        .react-btn {
+            padding: 12px 26px;
+            background: rgba(244,236,216,0.12);
+            border: 1px solid rgba(200,169,110,0.5);
+            border-radius: 24px;
+            color: rgba(240,228,200,0.9);
+            font-size: 19px; letter-spacing: 2px;
+            font-family: "STZhongsong","SimSun",serif;
+            cursor: pointer;
+            transition: background 0.25s, border-color 0.25s, transform 0.2s;
+        }
+        .react-btn:hover {
+            background: rgba(244,236,216,0.22);
+            border-color: rgba(200,169,110,0.9);
+            transform: translateY(-2px);
+        }
+        /* 反应后显示的台词气泡 */
+        #awaken-bubble {
+            position: relative; z-index: 2;
+            margin-top: 18px;
+            max-width: 420px;
+            background: rgba(15,10,5,0.72);
+            border: 1px solid rgba(200,169,110,0.35);
+            border-radius: 6px;
+            padding: 14px 22px;
+            font-size: 19px; line-height: 2.0; letter-spacing: 1.5px;
+            color: #e8dcc8;
+            font-family: "STZhongsong","SimSun",serif;
+            opacity: 0; transform: translateY(8px);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+        #awaken-bubble.show { opacity: 1; transform: translateY(0); }
+
+
+    </style>
+</head>
+<body>
+
+<!-- =====================================================
+     开场序幕：现代职场黑屏 → 黑洞穿越 → 醒来宋代
+===================================================== -->
+
+<!-- 层A：黑屏打字叙事 -->
+<div id="intro-screen">
+    <div id="intro-text-area">
+        <!-- JS动态填入 -->
+    </div>
+</div>
+
+<!-- 层B：黑洞吸入动画 -->
+<div id="blackhole-layer">
+    <canvas id="blackhole-canvas"></canvas>
+    <div id="blackhole-text">穿越时空……</div>
+</div>
+
+<!-- 睁眼特效遮罩 -->
+<div id="eye-open-overlay">
+    <div id="eye-top"></div>
+    <div id="eye-bottom"></div>
+</div>
+
+<!-- 层C：醒来，发现子由书信 -->
+<div id="awaken-layer">
+    <div id="awaken-overlay"></div>
+    <div id="letter-paper">
+        <h3>📜 子由手书</h3>
+        <p>
+            兄长，一别数月，愚弟日夜悬念。<br>
+            闻兄贬谪黄州，路途坎坷，心中着实不安。<br><br>
+            黄州虽偏，江山不减；东坡之地，或可耕读。<br>
+            兄向来豁达，弟却仍怕这荒僻之所消磨了那一身意气。<br><br>
+            家中无事，勿念。只盼兄多保重，常来信。
+        </p>
+        <div class="letter-sig">—— 子由 敬书</div>
+    </div>
+    <!-- 两个反应选项 -->
+    <div id="awaken-reactions">
+        <button class="react-btn" id="react-joy" onclick="handleReaction('joy')">😳 等等——我穿越了？！</button>
+        <button class="react-btn" id="react-calm" onclick="handleReaction('calm')">😶 先把信看完再说</button>
+    </div>
+    <!-- 反应后的内心独白气泡 -->
+    <div id="awaken-bubble"></div>
+</div>
+
+
+<audio id="bgm-main" loop><source src="bgm.mp3" type="audio/mpeg"></audio>
+<audio id="bgm-dongxiao" loop><source src="dongxiao.mp3" type="audio/mpeg"></audio>
+
+<div id="game-container">
+    <div id="fade-overlay"><span id="fade-text">山水兼程...</span></div>
+
+    <div id="top-bar">
+        <div class="glass-box">心境：<span id="optimism-state">平和</span> (<span id="optimism-val">50</span>)</div>
+        <div class="glass-box" id="music-btn">🎵 奏乐</div>
+    </div>
+
+    <div class="side-wrapper" id="left-wrapper">
+        <div class="friend-btn" id="btn-suzhe" style="background-image: url('suzhe-icon.png');">子由</div>
+        <div class="friend-btn disabled">佛印</div>
+        <div class="friend-btn disabled">朝云</div>
+    </div>
+
+    <div class="side-wrapper" id="right-wrapper">
+        <button class="nav-btn" onclick="openModal('modal-map')">🌍 行纪</button>
+        <button class="nav-btn" onclick="triggerStory()">📜 事纪</button>
+    </div>
+
+    <div id="character-area">
+        <div id="character-img"></div>
+    </div>
+
+    <!-- ======= 子由书信弹窗 ======= -->
+    <div id="modal-letter" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-title">✉️ 子由家书</div>
+            <div class="modal-content" id="letter-text">兄长，听闻你贬谪黄州已有些时日，不知住得可还习惯？银钱够花吗？唯念兄长。</div>
+            <div id="letter-choices">
+                <button class="choice-btn" onclick="replyLetter(1)">提笔：此处猪肉极佳，正研习新菜！</button>
+                <button class="choice-btn" onclick="replyLetter(2)">提笔：夜闻江声，觉人生如梦，难免惆怅。</button>
+            </div>
+            <div class="action-bar" style="display:none;" id="letter-action">
+                <div></div><button class="btn-primary" onclick="closeModal('modal-letter')">折好信笺</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======= 行纪地图弹窗 ======= -->
+    <div id="modal-map" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-title">🌍 行纪</div>
+            <div class="modal-content">
+                <button class="choice-btn" style="text-align:center; font-weight:bold;" onclick="travelTo('huangzhou')">📍 启程：黄州(赤壁)</button>
+                <button class="choice-btn locked">🔒 惠州 (未至)</button>
+                <button class="choice-btn locked">🔒 儋州 (未至)</button>
+            </div>
+            <div class="action-bar">
+                <button class="btn-secondary" onclick="travelTo('home')">🏠 归去(寒舍)</button>
+                <button class="btn-primary" onclick="closeModal('modal-map')">合上地图</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======= 夜泊赤壁到达弹窗 ======= -->
+    <div id="modal-arrival" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-title">📍 夜泊赤壁</div>
+            <div class="modal-content" id="arrival-text">江风浩荡，明月白露。贬谪以来的满腹郁结似乎被江风吹散了不少。同舟之客，扣舷而歌，正准备吹起洞箫……</div>
+            <div class="action-bar">
+                <button class="btn-secondary" id="btn-shangle" onclick="playDongxiao()">🎵 赏乐</button>
+                <button class="btn-primary" onclick="startHuangzhouStory()">与客共饮 (主线)</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======= 寒舍独白弹窗（非赤壁场景） ======= -->
+    <div id="modal-story" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-title" id="story-title">📜 事纪</div>
+            <div class="modal-content" id="story-text"></div>
+            <div id="story-choices"></div>
+            <div class="action-bar" id="story-action"></div>
+        </div>
+    </div>
+</div><!-- end game-container -->
+
+<!-- =====================================================
+     视觉小说场景：泛舟赤壁
+     层级 z-index:200，完整覆盖游戏画面
+===================================================== -->
+<div id="vn-scene">
+    <div id="vn-bg"></div>
+
+    <div id="vn-scene-title">📜 泛舟赤壁</div>
+    <button id="vn-close-btn" onclick="closeVN()">✕ 归舟</button>
+
+    <!-- 你：左侧 -->
+    <img id="vn-char-su" src="苏轼黄州-赤壁形象.png" alt="你" />
+    <!-- 客人：右侧 -->
+    <img id="vn-char-ke" src="客形象.png" alt="客" />
+
+    <!-- 选项按钮（出现在对话框上方、画面中部） -->
+    <div id="vn-choices">
+        <!-- 由JS动态注入 -->
+    </div>
+
+    <!-- 对话框：下方 -->
+    <div id="vn-dialog-box">
+        <div id="vn-speaker"></div>
+        <div id="vn-text"></div>
+        <div id="vn-result"></div>
+        <div id="vn-next-hint">点击继续 ▼</div>
+    </div>
+</div>
+
+
+<script>
+    let gameState = { optimism: 50, currentLocation: 'home' };
+
+    /* ================= 音轨管理系统 ================= */
+    const audioMain     = document.getElementById('bgm-main');
+    const audioDongxiao = document.getElementById('bgm-dongxiao');
+    let currentAudio = audioMain;
+    let isMusicPlaying  = false;
+    const musicBtn = document.getElementById('music-btn');
+
+    function toggleMusic() {
+        if (isMusicPlaying) {
+            currentAudio.pause();
+            musicBtn.innerText = "🔇 停乐";
+            isMusicPlaying = false;
+        } else {
+            currentAudio.play().then(() => {
+                musicBtn.innerText = currentAudio === audioDongxiao ? "🎵 听箫" : "🎵 奏乐";
+                isMusicPlaying = true;
+            }).catch(() => {});
+        }
+    }
+    musicBtn.addEventListener('click', toggleMusic);
+
+    function playDongxiao() {
+        currentAudio.pause();
+        currentAudio = audioDongxiao;
+        currentAudio.play().then(() => {
+            isMusicPlaying = true;
+            musicBtn.innerText = "🎵 听箫";
+            document.getElementById('arrival-text').innerHTML = "箫声呜呜然，如怨如慕，如泣如诉，余音袅袅，不绝如缕。江上清风拂过，你的心境随着这千古悲凉之音起伏……";
+            let btn = document.getElementById('btn-shangle');
+            btn.innerText = "🎵 箫声中...";
+            btn.disabled = true;
+            btn.style.opacity = 0.5;
+            btn.style.cursor = 'default';
+        }).catch(e => console.log("需用户先交互才能播放"));
+    }
+
+    /* ================= 状态更新 ================= */
+    function updateStats(value) {
+        gameState.optimism = Math.min(100, gameState.optimism + value);
+        document.getElementById('optimism-val').innerText = gameState.optimism;
+        let stateText = "平和", stateColor = "#8b5a2b";
+        if (gameState.optimism < 40)      { stateText = "郁结"; stateColor = "#4a536b"; }
+        else if (gameState.optimism >= 80) { stateText = "超然"; stateColor = "#b8860b"; }
+        else if (gameState.optimism >= 60) { stateText = "旷达"; stateColor = "#5d7a60"; }
+        let stateSpan = document.getElementById('optimism-state');
+        stateSpan.innerText = stateText;
+        stateSpan.style.color = stateColor;
+    }
+
+    function openModal(id) { document.getElementById(id).classList.add('active'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+    /* ================= 书信 ================= */
+    document.getElementById('btn-suzhe').addEventListener('click', () => {
+        document.getElementById('letter-text').innerHTML = "哥哥，闻你贬谪黄州已有些时日，不知住得可还习惯？银钱够花吗？唯念兄长。";
+        document.getElementById('letter-choices').style.display = 'block';
+        document.getElementById('letter-action').style.display = 'none';
+        openModal('modal-letter');
+    });
+
+    function replyLetter(choice) {
+        document.getElementById('letter-choices').style.display = 'none';
+        document.getElementById('letter-action').style.display = 'flex';
+        if (choice === 1) {
+            updateStats(10);
+            document.getElementById('letter-text').innerHTML = "<b>子由回信：</b><br><br>哈哈，兄长真乃饕客，即便身处逆境亦能寻找生活之乐。<br><br><span style='color:var(--green-color);'>【心胸开阔，豁达度 + 10】</span>";
+        } else {
+            updateStats(5);
+            document.getElementById('letter-text').innerHTML = "<b>子由回信：</b><br><br>人生如逆旅，我亦是行人。兄长莫要闷在屋里伤神。<br><br><span style='color:var(--green-color);'>【得弟宽慰，豁达度 + 5】</span>";
+        }
+    }
+
+    /* ================= 旅途状态机 ================= */
+    function travelTo(location) {
+        if (gameState.currentLocation === location) { closeModal('modal-map'); return; }
+        closeModal('modal-map');
+
+        const overlay  = document.getElementById('fade-overlay');
+        const fadeText = document.getElementById('fade-text');
+
+        overlay.style.visibility = 'visible';
+        overlay.style.opacity = 1;
+        fadeText.innerText = location === 'huangzhou' ? "乘一叶扁舟，赴赤壁..." : "踏上归途...";
+        setTimeout(() => fadeText.style.opacity = 1, 300);
+
+        if (location === 'home' && currentAudio === audioDongxiao) {
+            currentAudio.pause();
+            currentAudio = audioMain;
+            if (isMusicPlaying) { currentAudio.play(); musicBtn.innerText = "🎵 奏乐"; }
+        }
+
+        setTimeout(() => {
+            gameState.currentLocation = location;
+            const container = document.getElementById('game-container');
+            if (location === 'huangzhou') {
+                container.style.backgroundImage = "url('bg-huangzhou.png')";
+                container.style.backgroundColor = "#2a3b4c";
+            } else {
+                container.style.backgroundImage = "url('bg-default.png')";
+                container.style.backgroundColor = "var(--paper-bg)";
+            }
+
+            fadeText.style.opacity = 0;
+            overlay.style.opacity  = 0;
+            setTimeout(() => overlay.style.visibility = 'hidden', 1000);
+
+            if (location === 'huangzhou') {
+                let btn = document.getElementById('btn-shangle');
+                btn.innerText = "🎵 赏乐"; btn.disabled = false; btn.style.opacity = 1; btn.style.cursor = 'pointer';
+                document.getElementById('arrival-text').innerHTML = "江风浩荡，明月白露。贬谪以来的满腹郁结似乎被江风吹散了不少。同舟之客，扣舷而歌，正准备吹起洞箫……";
+                setTimeout(() => openModal('modal-arrival'), 800);
+            }
+        }, 1200);
+    }
+
+    /* ================= 寒舍事纪（普通弹窗） ================= */
+    function triggerStory() {
+        if (gameState.currentLocation === 'huangzhou') {
+            openVN(); // 进入视觉小说模式
+        } else {
+            const titleDOM   = document.getElementById('story-title');
+            const textDOM    = document.getElementById('story-text');
+            const choicesDOM = document.getElementById('story-choices');
+            const actionDOM  = document.getElementById('story-action');
+            titleDOM.innerText = "📜 寒舍笔墨";
+            textDOM.innerHTML  = "乌台一梦，几近死生。虽保全性命，但这黄州雪堂却也逼仄漏风。闭门研墨，纸上皆是前尘旧事，心绪难平。<br><br>莫不如去江边走走，借天地之阔，舒我胸中郁结？";
+            choicesDOM.style.display = 'none';
+            actionDOM.style.display  = 'flex';
+            actionDOM.innerHTML = `
+                <button class="btn-secondary" onclick="closeModal('modal-story'); openModal('modal-map');">🗺️ 前往【行纪】</button>
+                <button class="btn-primary" onclick="closeModal('modal-story')">继续歇息</button>
+            `;
+            openModal('modal-story');
+        }
+    }
+
+    function startHuangzhouStory() { closeModal('modal-arrival'); setTimeout(openVN, 300); }
+
+
+    /* =====================================================
+       视觉小说系统 —— 泛舟赤壁
+       对话脚本 + 状态机
+    ===================================================== */
+
+    /*
+     * 对话脚本格式：
+     * { speaker: "角色名" | null,
+     *   charSide: "ke"|"su"|"both"|null,   // 谁在发言（决定高亮哪侧）
+     *   text: "台词",
+     *   choices: [ { label, nextId, stat } ] | null,  // 有选项时暂停
+     *   id: "节点id",          // 用于跳转
+     *   next: "节点id" | null  // null = 结束
+     * }
+     */
+
+    const vnScript = {
+        // ─── 开局：江风序幕 ───
+        "s0": {
+            speaker: null, charSide: null,
+            text: "壬戌之秋，七月既望。月色如练，江水无声。你与客共泛小舟，顺流而下，话还没说，酒已过了两巡。",
+            next: "s1"
+        },
+        "s1": {
+            speaker: "你", charSide: "su",
+            text: "举杯邀客，笑道：你看这月亮，从不为谁多留一刻，也从不亏欠任何人。今夜清风、明月与这一壶酒，便是我们二人的了。",
+            next: "s2"
+        },
+        "s2": {
+            speaker: "客", charSide: "ke",
+            text: "拿起洞箫，就着月色吹了一曲，声音越吹越沉，终于放下来，叹道：先生，你我不过蜉蝣天地，须臾过客。曹操那样的英雄，而今安在？想到这，心里就空了一块，填不满。",
+            choices: [
+                { label: "笑道：你看这江水，永远在流，却从来没有流尽过。（从变与不变处解）", nextId: "s3a", stat: 15 },
+                { label: "笑道：你看这清风明月，它们没有主人，谁都可以取用。（从自由取用处开）", nextId: "s3b", stat: 20 }
+            ],
+            next: null
+        },
+        "s3a": {
+            speaker: "你", charSide: "su",
+            text: "指着江水，缓声道：从变的一面看，江水日夜不止；从不变的一面看，水还是那水，我还是我。人觉得短，是因为总盯着变的那一面——其实你我，与天地一样长久。",
+            resultText: "【悟得变与不变之理，豁达度 +15】",
+            next: "s4"
+        },
+        "s3b": {
+            speaker: "你", charSide: "su",
+            text: "斟满杯酒，笑道：江上清风，耳朵收得；山间明月，眼睛用得。无人禁止，取之不尽。功名权位，与人争夺；这些，却是造物白送给我们的无尽宝藏。",
+            resultText: "【得大自在，豁达度 +20】",
+            next: "s4"
+        },
+        "s4": {
+            speaker: "客", charSide: "ke",
+            text: "沉默片刻，抬头看了看月，又看了看你，嗤了一声：先生说得轻巧。可我心里空的那块，不是道理能填满的。",
+            next: "s5"
+        },
+        "s5": {
+            speaker: "你", charSide: "su",
+            text: "大笑，重新斟满两杯，推过去一杯：道理是填不满心的，酒也未必。但你看——风还在，月还在，我们还在。空着，也不坏。",
+            choices: [
+                { label: "相与枕藉乎舟中，不知东方之既白。（就这样喝到天亮）", nextId: "s6a", stat: 5 },
+                { label: "惟江上之清风，与山间之明月，吾与子之所共适。（以此句作结）", nextId: "s6b", stat: 10 }
+            ],
+            next: null
+        },
+        "s6a": {
+            speaker: null, charSide: "both",
+            text: "两人此后不再多言，只是一杯接着一杯。小舟随江漂荡，不知不觉，东方天际已泛起鱼肚白。心里那块郁结，不知何时，已散了大半。",
+            resultText: "【共饮忘忧，豁达度 +5】",
+            next: "end"
+        },
+        "s6b": {
+            speaker: "你", charSide: "su",
+            text: "客听罢，微微抬起头，眼里终于有了一丝松动。你轻声道：用不完的、拿不尽的，从来不在远处。就在手边。",
+            resultText: "【以诗悟道，豁达度 +10】",
+            next: "end"
+        },
+        "end": {
+            speaker: null, charSide: null,
+            text: "小舟在江心缓缓漂着，赤壁的石壁默默退入夜色深处。赤壁一夜，不虚此行。",
+            next: null
+        }
+    }
+
+    /* VN 状态 */
+    let vnCurrentId   = "s0";
+    let vnWaitChoice  = false;   // 是否等待玩家选择
+    let vnEnded       = false;
+    let vnPendingStat = 0;       // 待结算的数值
+
+    const vnScene     = document.getElementById('vn-scene');
+    const vnSpeaker   = document.getElementById('vn-speaker');
+    const vnText      = document.getElementById('vn-text');
+    const vnResult    = document.getElementById('vn-result');
+    const vnChoices   = document.getElementById('vn-choices');
+    const vnNextHint  = document.getElementById('vn-next-hint');
+    const vnCharSu    = document.getElementById('vn-char-su');
+    const vnCharKe    = document.getElementById('vn-char-ke');
+
+    function openVN() {
+        vnCurrentId  = "s0";
+        vnWaitChoice = false;
+        vnEnded      = false;
+        vnPendingStat = 0;
+        vnResult.style.display = 'none';
+        vnResult.innerText = '';
+        vnScene.classList.add('active');
+        renderVNNode(vnCurrentId);
+    }
+
+    function closeVN() {
+        vnScene.classList.remove('active');
+        // 结算待定积分
+        if (vnPendingStat > 0) {
+            updateStats(vnPendingStat);
+            vnPendingStat = 0;
+        }
+    }
+
+    function setCharHighlight(side) {
+        vnCharSu.classList.remove('vn-char-active', 'vn-char-dim');
+        vnCharKe.classList.remove('vn-char-active', 'vn-char-dim');
+        if (side === 'su') {
+            vnCharSu.classList.add('vn-char-active');
+            vnCharKe.classList.add('vn-char-dim');
+        } else if (side === 'ke') {
+            vnCharKe.classList.add('vn-char-active');
+            vnCharSu.classList.add('vn-char-dim');
+        } else {
+            // both / null：开幕无人物，两者都隐藏
+            vnCharSu.classList.add('vn-char-dim');
+            vnCharKe.classList.add('vn-char-dim');
+        }
+    }
+
+    function renderVNNode(id) {
+        const node = vnScript[id];
+        if (!node) return;
+
+        // 设置人物高亮
+        setCharHighlight(node.charSide);
+
+        // 根据说话人调整文字区偏移，避免被立绘遮挡
+        const dialogBox = document.getElementById('vn-dialog-box');
+        if (node.charSide === 'su') {
+            // 你在左说话 → 文字靠右（左侧留出立绘空间）
+            dialogBox.style.paddingLeft  = '36%';
+            dialogBox.style.paddingRight = '6%';
+        } else if (node.charSide === 'ke') {
+            // 客在右说话 → 文字靠左（右侧留出立绘空间）
+            dialogBox.style.paddingLeft  = '6%';
+            dialogBox.style.paddingRight = '36%';
+        } else {
+            // 旁白/null → 居中
+            dialogBox.style.paddingLeft  = '28%';
+            dialogBox.style.paddingRight = '28%';
+        }
+
+        // 说话人
+        vnSpeaker.innerText = node.speaker ? node.speaker : '';
+
+        // 台词（简单打字效果）
+        vnText.innerText = '';
+        typeText(vnText, node.text, 30);
+
+        // 结算文字隐藏
+        vnResult.style.display = 'none';
+
+        // 选项
+        vnChoices.classList.remove('visible');
+        vnChoices.innerHTML = '';
+        vnWaitChoice = false;
+
+        if (node.choices && node.choices.length > 0) {
+            // 有选项：打字结束后显示选项，隐藏继续提示
+            setTimeout(() => {
+                node.choices.forEach((c, i) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'vn-choice-btn';
+                    btn.setAttribute('data-index', i + 1);
+                    btn.innerText = c.label;
+                    btn.onclick = () => selectVNChoice(c);
+                    vnChoices.appendChild(btn);
+                });
+                vnChoices.classList.add('visible');
+                vnNextHint.style.display = 'none';
+                vnWaitChoice = true;
+            }, node.text.length * 30 + 100);
+        } else {
+            // 无选项：显示继续提示
+            setTimeout(() => {
+                vnNextHint.style.display = 'block';
+                if (node.next === null) {
+                    // 最后一节
+                    vnEnded = true;
+                    vnNextHint.innerText = '（点击任意处结束）';
+                } else {
+                    vnNextHint.innerText = '点击继续 ▼';
+                }
+            }, node.text.length * 30 + 80);
+        }
+    }
+
+    function selectVNChoice(choice) {
+        vnChoices.classList.remove('visible');
+        vnChoices.innerHTML = '';
+        vnWaitChoice = false;
+        // 积累数值，等关闭时统一结算（或即时结算亦可）
+        if (choice.stat) updateStats(choice.stat);
+        vnCurrentId = choice.nextId;
+        renderVNNode(vnCurrentId);
+    }
+
+    // 点击推进对话
+    vnScene.addEventListener('click', (e) => {
+        // 防止点击按钮时触发
+        if (e.target.classList.contains('vn-choice-btn')) return;
+        if (e.target.id === 'vn-close-btn') return;
+        if (vnWaitChoice) return;
+
+        if (vnEnded) { closeVN(); return; }
+
+        const node = vnScript[vnCurrentId];
+        if (!node || !node.next) return;
+
+        // 如果当前节点有 resultText，先展示再推进
+        if (node.resultText && vnResult.style.display === 'none') {
+            vnResult.innerText = node.resultText;
+            vnResult.style.display = 'block';
+            return; // 再点一次才推进
+        }
+
+        vnResult.style.display = 'none';
+        vnCurrentId = node.next;
+        renderVNNode(vnCurrentId);
+    });
+
+    /* 打字效果 */
+    function typeText(el, text, speed) {
+        el.innerText = '';
+        let i = 0;
+        const timer = setInterval(() => {
+            el.innerText += text[i];
+            i++;
+            if (i >= text.length) clearInterval(timer);
+        }, speed);
+    }
+
+    /* 将所有 HTML onclick 调用的函数挂到 window，避免严格模式作用域问题 */
+    window.openModal           = openModal;
+    window.closeModal          = closeModal;
+    window.travelTo            = travelTo;
+    window.triggerStory        = triggerStory;
+    window.replyLetter         = replyLetter;
+    window.playDongxiao        = playDongxiao;
+    window.startHuangzhouStory = startHuangzhouStory;
+    window.openVN              = openVN;
+    window.closeVN             = closeVN;
+
+
+    /* =====================================================
+       序幕系统：黑屏叙事 → 黑洞穿越 → 醒来宋代
+    ===================================================== */
+
+    (function() {
+
+        /* ── 序幕剧本：每一行的配置 ──
+         * text      显示文字
+         * type      '' | 'red' | 'big'  → 映射到 CSS class
+         * pause     本行显示后等待ms再继续（0=等点击）
+         * clear     显示前清空之前的行
+         */
+        const introScript = [
+            // ── 邮件通知 ──
+            { text: "22:47，你还在公司。",                    type: "",    pause: 900  },
+            { text: "手机震动了一下。",                        type: "",    pause: 700  },
+            { text: "是HR发的邮件。",                          type: "",    pause: 600  },
+            { text: "【岗位调整通知】",                        type: "red", pause: 800  },
+            { text: "你的职级，已于本月起调整为P4。",           type: "red", pause: 1400 },
+            { text: "原来的P5，就这么没了。",                   type: "",    pause: 1000 },
+            { text: "",                                        type: "",    pause: 300, clear: true },
+            // ── 妈妈短信 ──
+            { text: "这时妈妈发来消息。",                       type: "",    pause: 700  },
+            { text: "「吃了吗。」",                             type: "",    pause: 800  },
+            { text: "你盯着这三个字，",                         type: "",    pause: 700  },
+            { text: "不知道怎么回。",                           type: "",    pause: 900  },
+            { text: "不是不想回，",                             type: "",    pause: 600  },
+            { text: "是不知道从哪儿开口。",                     type: "",    pause: 1300 },
+            { text: "",                                        type: "",    pause: 300, clear: true },
+            // ── 想消失 ──
+            { text: "你很想，就这么消失一下。",                  type: "",    pause: 900  },
+            { text: "不是那种消失。",                           type: "",    pause: 700  },
+            { text: "就是……换一个地方。",                       type: "",    pause: 900  },
+            { text: "随便哪里都行。",                           type: "",    pause: 1400 },
+            { text: "",                                        type: "",    pause: 200, clear: true },
+            // ── 黑洞 ──
+            { text: "然后——",                                  type: "big", pause: 1000 },
+            { text: "屏幕黑了。",                               type: "",    pause: 700  },
+            { text: "不是没电。",                               type: "",    pause: 600  },
+            { text: "是那种，往里吸的黑。",                     type: "red", pause: 0    },
+        ];
+
+        const introScreen  = document.getElementById('intro-screen');
+        const introArea    = document.getElementById('intro-text-area');
+        const blackholeLay = document.getElementById('blackhole-layer');
+        const awakenLay    = document.getElementById('awaken-layer');
+        const gameContainer= document.getElementById('game-container');
+
+        let introStep   = 0;
+        let introRunning= false;
+        let introSkipped= false;
+        let introTimer  = null;
+
+        /* 渲染一行 */
+        function renderIntroLine(cfg) {
+            if (cfg.clear) {
+                Array.from(introArea.children).forEach(el => {
+                    if (!el.classList.contains('hint')) el.classList.add('dim');
+                });
+                setTimeout(() => {
+                    Array.from(introArea.querySelectorAll('.dim')).forEach(el => el.remove());
+                }, 320);
+            }
+            if (!cfg.text) return;
+            const div = document.createElement('div');
+            div.className = 'intro-line' + (cfg.type ? ' ' + cfg.type : '');
+            div.textContent = cfg.text;
+            introArea.appendChild(div);
+            // 三帧保证浏览器完成布局再触发 transition，彻底消除卡顿
+            requestAnimationFrame(() =>
+                requestAnimationFrame(() =>
+                    requestAnimationFrame(() => div.classList.add('show'))
+                )
+            );
+        }
+
+        /* 逐步播放 */
+        function playNextStep() {
+            if (introStep >= introScript.length) return;
+            introRunning = true;
+            const cfg = introScript[introStep];
+            introStep++;
+
+            renderIntroLine(cfg);
+
+            if (cfg.pause === 0) {
+                // 触发黑洞场景，不再继续序幕
+                setTimeout(triggerBlackhole, 600);
+                return;
+            }
+            introTimer = setTimeout(playNextStep, cfg.pause);
+        }
+
+        /* 点击跳过序幕 or 推进 */
+        introScreen.addEventListener('click', function() {
+            if (introRunning) {
+                // 跳过：直接触发黑洞
+                clearTimeout(introTimer);
+                introSkipped = true;
+                introStep = introScript.length;
+                introArea.innerHTML = '<div class="intro-line big show">然后——</div>';
+                setTimeout(triggerBlackhole, 700);
+            }
+        });
+
+        /* 黑洞吸入动画 */
+        function triggerBlackhole() {
+            introScreen.style.opacity = '0';
+            introScreen.style.transition = 'opacity 0.6s ease';
+            setTimeout(() => introScreen.classList.add('hidden'), 600);
+
+            blackholeLay.classList.add('active');
+            startBlackholeCanvas();
+
+            // 2.8秒后进入醒来场景
+            setTimeout(triggerAwaken, 2800);
+        }
+
+        /* Canvas 黑洞粒子动画 */
+        function startBlackholeCanvas() {
+            const canvas = document.getElementById('blackhole-canvas');
+            const ctx    = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height= window.innerHeight;
+            const cx = canvas.width / 2, cy = canvas.height / 2;
+
+            const particles = [];
+            for (let i = 0; i < 320; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const dist  = 80 + Math.random() * Math.max(canvas.width, canvas.height) * 0.6;
+                particles.push({
+                    x: cx + Math.cos(angle) * dist,
+                    y: cy + Math.sin(angle) * dist,
+                    angle: angle,
+                    dist: dist,
+                    speed: 0.012 + Math.random() * 0.018,
+                    size: 1 + Math.random() * 2.2,
+                    opacity: 0.4 + Math.random() * 0.6,
+                    hue: 30 + Math.random() * 40,
+                });
+            }
+
+            let frame = 0;
+            let rafId;
+            function draw() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                // 中心黑洞晕
+                const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 120 + frame * 0.5);
+                grad.addColorStop(0,   'rgba(0,0,0,1)');
+                grad.addColorStop(0.4, 'rgba(10,6,2,0.9)');
+                grad.addColorStop(1,   'rgba(0,0,0,0)');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // 螺旋粒子
+                particles.forEach(p => {
+                    p.angle += p.speed * (1 + frame * 0.003);
+                    p.dist  *= (0.978 - frame * 0.0004);
+                    if (p.dist < 3) p.dist = 3;
+                    p.x = cx + Math.cos(p.angle) * p.dist;
+                    p.y = cy + Math.sin(p.angle) * p.dist;
+                    const alpha = p.opacity * Math.min(1, p.dist / 40);
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size * Math.min(1, p.dist / 60), 0, Math.PI * 2);
+                    ctx.fillStyle = 'hsla(' + p.hue + ',60%,75%,' + alpha + ')';
+                    ctx.fill();
+                });
+
+                frame++;
+                if (frame < 90) rafId = requestAnimationFrame(draw);
+                else { cancelAnimationFrame(rafId); }
+            }
+            draw();
+        }
+
+        /* 醒来：信纸场景（睁眼特效） */
+        function triggerAwaken() {
+            blackholeLay.style.opacity = '0';
+            setTimeout(() => blackholeLay.style.display = 'none', 600);
+
+            const eyeOverlay = document.getElementById('eye-open-overlay');
+            // 先让眼帘处于合拢状态（闭眼）
+            eyeOverlay.style.display = 'block';
+            eyeOverlay.classList.remove('open');
+
+            // 同时淡入 awaken 背景
+            awakenLay.classList.add('active');
+
+            // 300ms后开始睁眼动画
+            setTimeout(() => {
+                eyeOverlay.classList.add('open');
+            }, 300);
+
+            // 睁眼完成后（1400ms过渡 + 300ms延迟 + 400ms余量）隐藏遮罩
+            setTimeout(() => {
+                eyeOverlay.style.opacity = '0';
+                eyeOverlay.style.transition = 'opacity 0.4s ease';
+                setTimeout(() => eyeOverlay.style.display = 'none', 400);
+            }, 2000);
+        }
+
+        /* 处理穿越后的两种反应 */
+        window.handleReaction = function(type) {
+            // 隐藏按钮区
+            const reactions = document.getElementById('awaken-reactions');
+            reactions.style.opacity = '0';
+            reactions.style.transform = 'translateY(-6px)';
+            reactions.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+
+            const bubble   = document.getElementById('awaken-bubble');
+
+            setTimeout(() => {
+                reactions.style.display = 'none';
+                if (type === 'joy') {
+                    bubble.innerHTML =
+                        '你猛地坐起来。<br>' +
+                        '四面都是陌生的——土墙、烛台、案头的砚台，还有那封信。<br>' +
+                        '你盯着信封上的字：子由敬呈兄长东坡。<br>' +
+                        '东坡。苏东坡。就是那个你高中背了整整一本文集的人。<br>' +
+                        '……那个人，是你。<br>' +
+                        '<span style="color:#c8a96e;font-size:17px;">【惊喜穿越，豁达度 +8】</span>';
+                    // 偷偷给游戏加分
+                    setTimeout(() => { if (typeof updateStats === 'function') updateStats(8); }, 200);
+                } else {
+                    bubble.innerHTML =
+                        '你先深吸一口气，再慢慢呼出来。<br>' +
+                        '好。信是真的。毛笔是真的。窗外那条江是真的。<br>' +
+                        '你是苏轼，被贬到黄州，时间大约是1080年。<br>' +
+                        '比上周的绩效会议……说实话，这稍微体面一点点。<br>' +
+                        '<span style="color:#c8a96e;font-size:17px;">【理性穿越，豁达度 +5】</span>';
+                    setTimeout(() => { if (typeof updateStats === 'function') updateStats(5); }, 200);
+                }
+                bubble.classList.add('show');
+                // 选完气泡出现后，2秒自动进入游戏
+                setTimeout(() => window.enterGame(), 2400);
+            }, 320);
+        };
+
+        /* 进入游戏主画面（由继续按钮或直接调用） */
+        window.enterGame = function enterGame() {
+            awakenLay.style.opacity = '0';
+            awakenLay.style.transition = 'opacity 0.8s ease';
+            setTimeout(() => {
+                awakenLay.style.display = 'none';
+                gameContainer.style.opacity = '1';
+                setTimeout(() => {
+                    document.getElementById('modal-letter').classList.add('active');
+                }, 600);
+            }, 800);
+        };
+
+        /* 游戏主界面初始隐藏，序幕结束后才显示 */
+        gameContainer.style.opacity = '0';
+        gameContainer.style.transition = 'opacity 0.8s ease';
+
+        // 启动序幕
+        setTimeout(playNextStep, 500);
+
+    })(); // end IIFE
+
+
+</script>
+</body>
+</html>
